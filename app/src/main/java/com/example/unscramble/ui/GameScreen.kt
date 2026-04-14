@@ -18,12 +18,18 @@ package com.example.unscramble.ui
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -56,11 +62,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.unscramble.R
+import com.example.unscramble.data.GameHistory
 import com.example.unscramble.ui.theme.UnscrambleTheme
 
 @Composable
 fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
     val gameUiState by gameViewModel.uiState.collectAsState()
+    val gameHistoryList by gameViewModel.gameHistoryFlow.collectAsState(initial = emptyList())
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
     Column(
@@ -73,10 +81,21 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Text(
-            text = stringResource(R.string.app_name),
-            style = typography.titleLarge,
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.app_name),
+                style = typography.titleLarge,
+                modifier = Modifier.align(Alignment.Center)
+            )
+            TextButton(
+                onClick = { gameViewModel.showHistoryDialog(true) },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                Text("History")
+            }
+        }
         GameLayout(
             onUserGuessChanged = { gameViewModel.updateUserGuess(it) },
             wordCount = gameUiState.currentWordCount,
@@ -124,6 +143,13 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
             FinalScoreDialog(
                 score = gameUiState.score,
                 onPlayAgain = { gameViewModel.resetGame() }
+            )
+        }
+
+        if (gameViewModel.isShowingHistoryDialog) {
+            HistoryDialog(
+                historyList = gameHistoryList,
+                onDismiss = { gameViewModel.showHistoryDialog(false) }
             )
         }
     }
@@ -213,9 +239,6 @@ fun GameLayout(
     }
 }
 
-/*
- * Creates and shows an AlertDialog with final score.
- */
 @Composable
 private fun FinalScoreDialog(
     score: Int,
@@ -245,6 +268,49 @@ private fun FinalScoreDialog(
         confirmButton = {
             TextButton(onClick = onPlayAgain) {
                 Text(text = stringResource(R.string.play_again))
+            }
+        }
+    )
+}
+
+@Composable
+fun HistoryDialog(
+    historyList: List<GameHistory>,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Game History") },
+        text = {
+            if (historyList.isEmpty()) {
+                Text("No history yet. Play a game to record scores!")
+            } else {
+                LazyColumn {
+                    itemsIndexed(historyList) { index, history ->
+                        Column(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = "History ${index + 1}",
+                                style = typography.titleMedium,
+                                color = colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Score: ${history.score}",
+                                style = typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        modifier = modifier,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Close")
             }
         }
     )
