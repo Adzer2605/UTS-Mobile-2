@@ -25,6 +25,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.unscramble.ui.GameScreen
 import com.example.unscramble.ui.theme.UnscrambleTheme
+import com.example.unscramble.data.AppDatabase
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.unscramble.ui.GameViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +38,11 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    GameScreen()
+                    val database = AppDatabase.getDatabase(this)
+                    val gameViewModel: GameViewModel = viewModel(
+                        factory = GameViewModel.factory(database.gameHistoryDao())
+                    )
+                    GameScreen(gameViewModel = gameViewModel)
                 }
             }
         }
