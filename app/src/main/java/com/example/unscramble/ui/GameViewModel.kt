@@ -20,35 +20,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.unscramble.data.MAX_NO_OF_WORDS
-import com.example.unscramble.data.SCORE_INCREASE
-import com.example.unscramble.data.allWords
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.unscramble.data.GameHistory
 import com.example.unscramble.data.GameHistoryDao
+import com.example.unscramble.data.MAX_NO_OF_WORDS
+import com.example.unscramble.data.SCORE_INCREASE
+import com.example.unscramble.data.allWords
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel containing the app data and methods to process the data
- */
-class GameViewModel(private val historyDao: GameHistoryDao) :ViewModel{
+class GameViewModel(private val historyDao: GameHistoryDao) : ViewModel() {
 
-    val gameHistoryFlow:
-    Flow<List<GameHistory>> = historyDao.getAllHistory()
+    val gameHistoryFlow: Flow<List<GameHistory>> = historyDao.getAllHistory()
 
     var isShowingHistoryDialog by mutableStateOf(false)
         private set
 
-    fun showHistoryDialog(show: Boolean)
-    {
+    fun showHistoryDialog(show: Boolean) {
         isShowingHistoryDialog = show
     }
 
@@ -67,25 +62,15 @@ class GameViewModel(private val historyDao: GameHistoryDao) :ViewModel{
         resetGame()
     }
 
-    /*
-     * Re-initializes the game data to restart the game.
-     */
     fun resetGame() {
         usedWords.clear()
         _uiState.value = GameUiState(currentScrambledWord = pickRandomWordAndShuffle())
     }
 
-    /*
-     * Update the user's guess
-     */
     fun updateUserGuess(guessedWord: String){
         userGuess = guessedWord
     }
 
-    /*
-     * Checks if the user's guess is correct.
-     * Increases the score accordingly.
-     */
     fun checkUserGuess() {
         if (userGuess.equals(currentWord, ignoreCase = true)) {
             // User's guess is correct, increase the score
@@ -102,19 +87,12 @@ class GameViewModel(private val historyDao: GameHistoryDao) :ViewModel{
         updateUserGuess("")
     }
 
-    /*
-     * Skip to next word
-     */
     fun skipWord() {
         updateGameState(_uiState.value.score)
         // Reset user guess
         updateUserGuess("")
     }
 
-    /*
-     * Picks a new currentWord and currentScrambledWord and updates UiState according to
-     * current game state.
-     */
     private fun updateGameState(updatedScore: Int) {
         if (usedWords.size == MAX_NO_OF_WORDS){
             //Last round in the game, update isGameOver to true, don't pick a new word
@@ -125,7 +103,7 @@ class GameViewModel(private val historyDao: GameHistoryDao) :ViewModel{
                     isGameOver = true
                 )
             }
-            saveGameHistory(updatedScore,usedWords.size)
+            saveGameHistory(updatedScore, usedWords.size)
         } else{
             // Normal round in the game
             _uiState.update { currentState ->
@@ -159,16 +137,18 @@ class GameViewModel(private val historyDao: GameHistoryDao) :ViewModel{
             shuffleCurrentWord(currentWord)
         }
     }
-    private fun saveGameHistory(score: Int,wordCount: Int){
+
+    private fun saveGameHistory(score: Int, wordCount: Int) {
         viewModelScope.launch {
             historyDao.insert(GameHistory(score = score, wordCount = wordCount))
         }
     }
 
-    companion object{
-        fun factory(historyDao: GameHistoryDao):
-                ViewModelProvider.Factory = viewModelFactory { initializer { GameViewModel(historyDao)
-                }
-                }
+    companion object {
+        fun factory(historyDao: GameHistoryDao): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                GameViewModel(historyDao)
+            }
+        }
     }
 }
