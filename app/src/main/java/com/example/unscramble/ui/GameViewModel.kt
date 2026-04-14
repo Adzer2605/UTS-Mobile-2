@@ -27,11 +27,30 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.unscramble.data.GameHistory
+import com.example.unscramble.data.GameHistoryDao
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel containing the app data and methods to process the data
  */
-class GameViewModel : ViewModel() {
+class GameViewModel(private val historyDao: GameHistoryDao) :ViewModel{
+
+    val gameHistoryFlow:
+    Flow<List<GameHistory>> = historyDao.getAllHistory()
+
+    var isShowingHistoryDialog by mutableStateOf(false)
+        private set
+
+    fun showHistoryDialog(show: Boolean)
+    {
+        isShowingHistoryDialog = show
+    }
 
     // Game UI state
     private val _uiState = MutableStateFlow(GameUiState())
@@ -106,6 +125,7 @@ class GameViewModel : ViewModel() {
                     isGameOver = true
                 )
             }
+            saveGameHistory(updatedScore,usedWords.size)
         } else{
             // Normal round in the game
             _uiState.update { currentState ->
@@ -138,5 +158,17 @@ class GameViewModel : ViewModel() {
             usedWords.add(currentWord)
             shuffleCurrentWord(currentWord)
         }
+    }
+    private fun saveGameHistory(score: Int,wordCount: Int){
+        viewModelScope.launch {
+            historyDao.insert(GameHistory(score = score, wordCount = wordCount))
+        }
+    }
+
+    companion object{
+        fun factory(historyDao: GameHistoryDao):
+                ViewModelProvider.Factory = viewModelFactory { initializer { GameViewModel(historyDao)
+                }
+                }
     }
 }
